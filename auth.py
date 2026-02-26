@@ -2,8 +2,11 @@ from fastapi import HTTPException, Request
 import jwt
 from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
+from dotenv import load_dotenv
+import os
 
-SECRET_KEY = "my-secret-key"
+load_dotenv()
+SECRET_KEY = os.getenv("SECRET_KEY")
 pwd_context = CryptContext(schemes=["bcrypt"])
 
 
