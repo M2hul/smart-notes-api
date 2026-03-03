@@ -2,6 +2,7 @@ from sqlite3 import IntegrityError
 from typing import Optional
 import datetime
 from fastapi import Depends, FastAPI, HTTPException, Request
+from ai import generate_response
 from auth import create_token, get_current_user, pwd_context
 
 from pydantic import BaseModel
@@ -28,6 +29,10 @@ class UserInfo(BaseModel):
     email: Optional[str] = None
     password: str
     username: Optional[str] = None
+
+
+class Chat(BaseModel):
+    question: str
 
 
 @app.get("/notes")
@@ -193,3 +198,39 @@ def user_login(user_info: UserInfo):
             }
         else:
             raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+@app.post("/chat")
+async def post_chat(chat: Chat, user_id: int = Depends(get_current_user)):
+
+    context_data = get_notes(user_id)
+
+    ai_response = generate_response(chat.question, context_data)
+
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO chats (question, answer, user_id) VALUES (?, ?, ?)",
+            (chat.question, ai_response, user_id,)
+        )
+        conn.commit()
+
+        chat_id = cursor.lastrowid
+
+        return {
+            "id": chat_id,
+            "question": chat.question,
+            "answer": ai_response
+        }
+
+
+@app.get("/chats")
+def chat_history(user_id: int = Depends(get_current_user)):
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM chats where user_id = ?", (user_id,)
+        )
+        chats = cursor.fetchall()
+
+        return [dict(chat) for chat in chats]

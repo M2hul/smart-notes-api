@@ -24,6 +24,14 @@ def init_db():
             fullname TEXT NOT NULL
             )"""
         )
+        cursor.execute(
+            """CREATE TABLE IF NOT EXISTS chats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            answer TEXT NOT NULL,
+            question TEXT NOT NULL
+            )"""
+        )
         conn.commit()
 
 
